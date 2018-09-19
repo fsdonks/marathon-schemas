@@ -3,8 +3,8 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [spork "0.2.1.0-SNAPSHOT"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [spork "0.2.1.1-SNAPSHOT"]
                  ;;used to generate ns keys for spec...
                  ;;will likely shift to metosin spec-tools
                  ;;in very near future to obviate this.
