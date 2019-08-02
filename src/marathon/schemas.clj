@@ -100,6 +100,7 @@
      :Command ;;command relationship, if any...
      :Origin     ;;supply relationship, if any...
      [:Duration :int?] ;;Duration remaining in StartState...
+     [:Mod  :int?] ;;optional modernization level
      ]
    :SRCTagRecords  
     [:Type :SRC :Tag]
@@ -127,7 +128,9 @@
      [:BOG :boolean]
      :StartState
      :EndState
-     [:MissionLength :int?]]
+     [:MissionLength :int?]
+     [:Mod  :int?] ;;optional modernization level
+     ]
    :PeriodRecords
     [:Type 
      :Name 
