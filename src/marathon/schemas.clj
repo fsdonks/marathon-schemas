@@ -4,15 +4,30 @@
 (ns marathon.schemas
   (:require [spork.util [parsing :as p]
                         [table :as tbl]
-                        [general :as g]]))
-(defn schema [name field-defs]
+                        [general :as g]]
+            [spork.data [orderedmap :as om]]))
+(defn schema
+  "Allows us to define schemas that spork.util.table can parse.
+   "
+  [name field-defs]
   {(keyword name)
-   (reduce (fn [acc f]
-               (if (not (coll? f))
-                 (-> acc (assoc f :text))
-                 (-> acc (assoc (first f) (second f)))))
-             {}
-             field-defs)})
+   (->> field-defs
+        (mapcat (fn [f] (if (:optional f)
+                       (for [fld (:optional f)]
+                         [fld true])
+                       [[f false]])))
+        (reduce (fn [acc [f optional]]
+                  (let [[k v] (if (not (coll? f))
+                                [f :text]
+                                f)
+                        new-meta (when optional
+                                   (update (meta acc)
+                                           :optional conj k))]
+                    (-> (if optional
+                          (with-meta acc new-meta)
+                          acc)
+                        (assoc k v))))
+                (with-meta om/empty-ordered-map {:optional #{}})))})
 
 (defn schemas [& xs]
   (reduce merge (for [[n fields] xs] 
@@ -100,11 +115,14 @@
      :Command ;;command relationship, if any...
      :Origin     ;;supply relationship, if any...
      [:Duration :int?] ;;Duration remaining in StartState...
-     [:Mod  :int?] ;;optional modernization level
+     ;;annotated to ensure these show up in the ^:optional meta
+     {:optional
+      [[:Mod  :int?]
+       ]} ;;optional modernization level
      ]
-   :SRCTagRecords  
+   :SRCTagRecords
     [:Type :SRC :Tag]
-   :DemandRecords  
+   :DemandRecords
     [:Type
      [:Enabled     :boolean]
      [:Priority    :int]
@@ -121,15 +139,16 @@
      :Category
      [:Priority :int]
      ;;Added for SRM ;;need to allow these to parse loosely...
-     :Command
-     :Location
-     :DemandType
-     :Theater
-     [:BOG :boolean]
-     :StartState
-     :EndState
-     [:MissionLength :int?]
-     [:Mod  :int?] ;;optional modernization level
+     {:optional ;;annotated to ensure these show up in the ^:optional meta
+      [:Command
+       :Location
+       :DemandType
+       :Theater
+       [:BOG :boolean]
+       :StartState
+       :EndState
+       [:MissionLength :int?]
+       [:Mod  :int?]]} ;;optional modernization level
      ]
    :PeriodRecords
     [:Type 
@@ -187,16 +206,23 @@
 ;;optional helper function.
 ;;Allows us to print the schemas in a format readable
 ;;by beamer and other presntation stuff.
+
+(defn print-field [fld]
+  (let [fname (if (vector? fld) (name (first fld)) (name fld))
+        ftype (if (vector? fld) (second fld) :text)
+        fdoc  (if (vector? fld) (get fld 2 "") "")]
+    (format "  - %s %s %s" fname ftype fdoc)))
+
 (defn print-schema
   ([schema field-spec]
-    (str "- " (name schema) \newline
-         (clojure.string/join \newline
-             (for [fld field-spec]
-                (let [fname (if (vector? fld) (name (first fld)) (name fld))
-                      ftype (if (vector? fld) (second fld) :text)
-                      fdoc  (if (vector? fld) (get fld 2 "") "")]
-                  (format "  - %s %s %s" fname ftype fdoc))))         
-         ))
+   (str "- " (name schema) \newline
+        (->> field-spec
+             (map   #(if (:optional %)
+                       (clojure.string/join \newline
+                            (map (fn [fld] (str (print-field fld) " ;<optional>"))
+                                 (:optional %)))
+                      (print-field %)))
+             (clojure.string/join \newline))))
   ([v] (print-schema (first v) (second v))))
 
 (def known-schemas 
@@ -317,7 +343,7 @@
 
 ;;Allows us to quickly read tab-delimited txt files 
 ;;using a named schema.
-(defn read-schema  
+(defn read-schema
   "Given a known schema, looks up the schema and uses it 
    to read txt.  Currently reads tab-delimited text files, 
    returning a table parsed via the appropriate schema."
