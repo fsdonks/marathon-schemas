@@ -12,10 +12,6 @@
             [clojure.spec.gen.alpha :as gen]
             [clojure.spec.test.alpha :as stest]
             [clojure.string :as str]
-            ;;brings in extras for clojure.core, shim between 1.8/1.9
-            ;;we can drop this after moving to 1.9, everything will
-            ;;keep working.
-            [clojure.future :refer :all]
             [marathon.schemas :as schemas])
   )
 
