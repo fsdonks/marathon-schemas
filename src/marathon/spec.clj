@@ -12,7 +12,8 @@
             [clojure.spec.gen.alpha :as gen]
             [clojure.spec.test.alpha :as stest]
             [clojure.string :as str]
-            [marathon.schemas :as schemas])
+            [marathon.schemas :as schemas]
+            [clojure.set :as cset])
   )
 
 ;;let's start by validating demand records.
@@ -119,33 +120,30 @@
         schema (cond (map? schema) schema
                      (symbol? schema) (eval schema)
                      :else (throw (Exception.
-                                   (str [:invalid-schema schema]))))]
-  `(do (ss/ns-defs ~name
+                                   (str [:invalid-schema schema]))))
+        optional (:optional (meta schema))
+        required (cset/difference (set (keys schema)) optional)
+        ]
+    `(do (ss/ns-defs ~name
+                     ;;name and schema
          ~@(apply concat
              (for [[fld parser] (seq schema)]
                [fld (or (get specs parser)
                         (throw (Exception. (str [:unknown-field-type parser
-                                                 :for-field fld]))))])))
-       (s/def ~qualified (ss/ns-keys ~name :req-un [~@(keys schema)]))
-       )))
+                                                 :for-field
+                                                 fld]))))])))
+         ;;just send qualified and schema
+       (s/def ~qualified (ss/ns-keys ~name :req-un [~@required]
+                                     :opt-un [~@optional]
+                                     )))))
 
-;;this is a quick hack...
-(def optional-fields
-  {:DemandRecords [:Command
-                   :Location
-                   :DemandType
-                   :Theater
-                   :BOG
-                   :StartState
-                   :EndState
-                   :MissionLength]
-   :SupplyRecords [:Command :Origin :Duration]})
+;;Fields to ignore in specs.
 (def ignored-fields
   {:PolicyRecords [:TimeStamp :Remarks]})
 
 (defn patch-schema [nm schema]
-  [nm (if-let [optionals (concat (get optional-fields nm) (get ignored-fields nm))]
-        (reduce dissoc schema optionals)
+  [nm (if-let [ignored (get ignored-fields nm)]
+        (reduce dissoc schema ignored)
         schema)])
 
 (def marathon-specs

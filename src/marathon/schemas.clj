@@ -73,7 +73,7 @@
    :PolicyRecords  
     [:TimeStamp
      :Type
-     :TimeInterval
+     (keyword "Time Interval")
      :PolicyName
      :Template
      [:MaxDwell :int]
@@ -111,14 +111,15 @@
      :Location
      :Position ;;Starting state for policy (typically SRM-specific....)
      [:Original :boolean]
-      ;;Added 4 new fields to accomodate requirements for SRM
-     :Command ;;command relationship, if any...
-     :Origin     ;;supply relationship, if any...
-     [:Duration :int?] ;;Duration remaining in StartState...
-     ;;annotated to ensure these show up in the ^:optional meta
+
      {:optional
-      [[:Mod  :int?]
-       ]} ;;optional modernization level
+      [[:Mod  :int?] ;;optional modernization level
+       ;;Added 3 new fields to accomodate requirements for SRM
+       :Command ;;command relationship, if any...
+       :Origin     ;;supply relationship, if any...
+       [:Duration :int?] ;;Duration remaining in StartState...
+       ;;annotated to ensure these show up in the ^:optional meta
+       ]} 
      ]
    :SRCTagRecords
     [:Type :SRC :Tag]
