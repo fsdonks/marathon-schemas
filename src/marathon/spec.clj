@@ -23,9 +23,16 @@
 ;;providing a basis for generating
 ;;random records via s/conform.
 
-(defn maybe-type [tag pred]
-  (eval `(s/or ~tag ~pred
-               :nil nil?)))
+(defn maybe-type
+  "Allows us to return a value for pred or sometimes return nil
+  instead such as when a user leaves a field blank in Excel.  tag is
+  just an identifier for s/or and pred is the datatype.  Defines the
+  spec and returns the qualified keyword for the spec."
+  [tag pred]
+  (let [k (keyword "marathon.spec" (name tag))]
+  (eval `(s/def ~k (s/or ~tag ~pred
+                         :nil nil?)))
+  k))
 
 (s/def ::clojure-number
   number?)
@@ -52,7 +59,6 @@
   (s/or :primitive ::clojure-primitive
         :collection ::clojure-collection))
 
-(s/def ::boolean #(instance? java.lang.Boolean %))
 ;; (s/def ::text string?)
 ;; (s/def ::double double?)
 ;; (s/def ::double? (maybe-type :double? float?))
@@ -80,7 +86,7 @@
     :keyword keyword?
     :literal ::clojure-expression
     :code    ::clojure-expression
-    :boolean ::boolean
+    :boolean boolean?
     :text   string?
     })
 
@@ -120,7 +126,7 @@
                [fld (or (get specs parser)
                         (throw (Exception. (str [:unknown-field-type parser
                                                  :for-field fld]))))])))
-       (s/def ~qualified (ss/ns-keys ~name :opt-un [~@(keys schema)]))
+       (s/def ~qualified (ss/ns-keys ~name :req-un [~@(keys schema)]))
        )))
 
 ;;this is a quick hack...
@@ -141,7 +147,7 @@
   [nm (if-let [optionals (concat (get optional-fields nm) (get ignored-fields nm))]
         (reduce dissoc schema optionals)
         schema)])
-        
+
 (def marathon-specs
   (doseq [[k v]  schemas/known-schemas]
     (let [[nm schema] (patch-schema k v)]
@@ -189,3 +195,8 @@
    the load-project pipeline for marathon.project."
   [p]
   (validate-tables (dissoc (:tables p) :Parameters)))
+
+
+
+;;Write spec for requirements analysis such that forward stationed
+;;supply is >= forward stationed demand.
