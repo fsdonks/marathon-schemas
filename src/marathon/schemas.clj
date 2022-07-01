@@ -73,7 +73,6 @@
    :PolicyRecords  
     [:TimeStamp
      :Type
-     (keyword "Time Interval")
      :PolicyName
      :Template
      [:MaxDwell :int]
@@ -85,7 +84,18 @@
      [:Recovery :int]
      :BOGBudget
      :Deltas
-     :Remarks]
+     :Remarks
+     {
+      :optional
+      ;;This is used when loading a project and then checking the spec
+      ;;where we haven't corrected for spaces yet.  Need to go back
+      ;;and make a change so that we are checking only one of these
+      ;;Time Intervals.  If we are correcting for spaces, maybe we
+      ;;should do it when loading the project.
+      [(keyword "Time Interval")
+       ;;I think we correct for spaces and then check against the spec
+       ;;when running capacity analysis.
+       :TimeInterval]}]
    :CompositePolicyRecords 
     [:Type 
      :CompositeName 
