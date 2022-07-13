@@ -246,5 +246,15 @@
 ;;defining the marathon specs
 (s/def :DemandRecords/Tags2 (s/and :marathon.spec/Tags :DemandRecords/Tags ))
 
-;;SupplyRecords/Component #{"AC", "NG", "RA"}
+;;SupplyRecord/Component #{"AC", "NG", "RA"}
 ;;SupplyRecords can't have two records for the same SRC, Component
+;;DemandRecord/SRC and SupplyRecord/SRC
+;;make it more likely to get in scope results with
+;;(def likelihoods [7 14 21 26 32]) ;;This didn't look skewed enough
+(def likelihoods [1 6 13 30 50])
+(def src-sets (map (fn [src] #{(str src)}) (range (count
+                                                   likelihoods))))
+(def src-gens (map s/gen src-sets))
+(def more-likely (gen/frequency
+                  (map vector likelihoods src-gens)))
+
