@@ -60,6 +60,44 @@
   (s/or :primitive ::clojure-primitive
         :collection ::clojure-collection))
 
+;;[:forward 3]
+(s/def :marathon.spec/bin (s/cat :bin-name (s/or :key? keyword?
+                                                 :string?  string?)
+                                 :count int?))
+(s/def :marathon.spec/bins (s/+ :marathon.spec/bin))
+
+;;Preprocessing supply functions
+;;Dispatch on the preprocessing supply function symbol for now.
+(defmulti pre-function (fn [[func-symbol & args]]  func-symbol))
+
+(defmethod pre-function 'align-units [_]
+  ;;bin spec here
+  ;;Only one arg of bins
+  (s/tuple #{'align-units} (s/coll-of
+  :marathon.spec/bins :count 1)))
+
+(s/def :marathon.spec/preprocessor (s/multi-spec pre-function
+                                                ;;Return the value
+                                                ;;that was generated
+                                                ;;by the spec
+                                                (fn retag
+                                                  [gen-val
+                                                   dispatch-tag]
+                                                  gen-val)
+                                                ))
+
+(s/def :marathon.spec/preprocess (s/and
+                                      (s/*
+                                       :marathon.spec/preprocessor)
+                                      ;;Don't repeat the same
+                                      ;;preprocessing function for
+                                      ;;now.  Maybe there will be a
+                                      ;;use case for that in the future.
+                                      #(if (empty? %) true (apply
+                                                            distinct?
+                                      (map first %)))))
+
+                                      
 ;; (s/def ::text string?)
 ;; (s/def ::double double?)
 ;; (s/def ::double? (maybe-type :double? float?))
@@ -187,6 +225,8 @@
   (doseq [[nm t] xs]
     (validate-records nm t)))
 
+;;I think we should really define a MARATHON project spec as a map of
+;;the project tables instead of doing this manually with this function.
 (defn validate-project
   "Beta implementation of project-level
    validation.  Soon to be introduced into
@@ -198,3 +238,13 @@
 
 ;;Write spec for requirements analysis such that forward stationed
 ;;supply is >= forward stationed demand.
+
+(s/def :marathon.spec/Tags (s/keys :opt-un
+                                   [:marathon.spec/preprocess]))
+;;can't redefine Tags this way, so we need another solution
+;;commit for now. Then look into searching for marathon.spec/Tags when
+;;defining the marathon specs
+(s/def :DemandRecords/Tags2 (s/and :marathon.spec/Tags :DemandRecords/Tags ))
+
+;;SupplyRecords/Component #{"AC", "NG", "RA"}
+;;SupplyRecords can't have two records for the same SRC, Component
