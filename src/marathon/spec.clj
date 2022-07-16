@@ -129,8 +129,46 @@
     :text   string?
     })
 
+;;If we want to add on additional specs to the schemas, we can define
+;;specs qualified in this namespace and get-spec will combine the
+;;specs together with s/and.
+(s/def :marathon.spec/Tags (s/keys :opt-un
+                                   [:marathon.spec/preprocess]))
+
 (defn kw->vec [k]
   [(name k) (namespace k)])
+
+(def unresolvable-matcher
+  #"Unable to resolve spec:")
+
+(defn resolvable-spec?
+  [spec]
+  (try
+    (do (s/describe spec)
+        ;;This is a resolvable spec.
+        true)
+    (catch Exception e
+      ;;This is an unresolvable spec
+      (if-let [[_ ns* name*] (re-find
+                              unresolvable-matcher
+                              (.getMessage e))]
+        ;;Return false if the spec is unresolvable and the error
+        ;;isn't for some other reason.
+        false
+        ;;If the error is for some other reason.
+        (throw e)))))
+
+(defn get-spec [fld parser]
+  (let [spec-lookup (keyword "marathon.spec" (name fld))
+        existing-spec (or (get specs parser)
+                        (throw (Exception. (str [:unknown-field-type
+                                                 parser
+                                                 :for-field
+                                                 fld]))))]
+(if (resolvable-spec? spec-lookup)
+  `(s/and ~spec-lookup ~existing-spec)
+  existing-spec)))
+  
 ;;the trick with specs is to use qualified keys.
 ;;what we'll do is create a fake namespace,
 ;;and prepend it to all the keywords.
@@ -166,10 +204,7 @@
                      ;;name and schema
          ~@(apply concat
              (for [[fld parser] (seq schema)]
-               [fld (or (get specs parser)
-                        (throw (Exception. (str [:unknown-field-type parser
-                                                 :for-field
-                                                 fld]))))])))
+               [fld (get-spec fld parser)])))
          ;;just send qualified and schema
        (s/def ~qualified (ss/ns-keys ~name :req-un [~@required]
                                      :opt-un [~@optional]
@@ -239,19 +274,29 @@
 ;;Write spec for requirements analysis such that forward stationed
 ;;supply is >= forward stationed demand.
 
-(s/def :marathon.spec/Tags (s/keys :opt-un
-                                   [:marathon.spec/preprocess]))
-;;can't redefine Tags this way, so we need another solution
-;;commit for now. Then look into searching for marathon.spec/Tags when
-;;defining the marathon specs
-(s/def :DemandRecords/Tags2 (s/and :marathon.spec/Tags :DemandRecords/Tags ))
+(defn num-ints
+  "Generate a range of ints of length num, starting at 1, with a step
+  of spread."
+  [num spread] (range 1 (* num spread) spread))
+
+;;This gives us an extendable sequence that has a much lower
+;;probability of generating stuff at the beginnign of the sequence
+;;compared to the end of the sequence.
+(defn spread-squares
+  "Square a sequence of num-ints"
+  [num spread]
+  (let [nums (num-ints num spread)]
+    (map * nums nums)))
 
 ;;SupplyRecord/Component #{"AC", "NG", "RA"}
 ;;SupplyRecords can't have two records for the same SRC, Component
 ;;DemandRecord/SRC and SupplyRecord/SRC
 ;;make it more likely to get in scope results with
 ;;(def likelihoods [7 14 21 26 32]) ;;This didn't look skewed enough
-(def likelihoods [1 6 13 30 50])
+;;(def likelihoods [1 6 13 30 50])  ;;This doesn't extend
+(def likelihoods (spread-squares 5 2));; This is more extendable, and
+;; two samples are almost always inscope.  One sample might not be.
+
 (def src-sets (map (fn [src] #{(str src)}) (range (count
                                                    likelihoods))))
 (def src-gens (map s/gen src-sets))
