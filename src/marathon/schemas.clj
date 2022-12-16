@@ -151,7 +151,8 @@
      [:Priority :int]
      ;;Added for SRM ;;need to allow these to parse loosely...
      {:optional ;;annotated to ensure these show up in the ^:optional meta
-      [:Command
+      [[:Tags :clojure] ;;marathon.ces.sampledata does not have tags
+       :Command
        :Location
        :DemandType
        :Theater
