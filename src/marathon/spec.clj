@@ -297,6 +297,7 @@
 (def likelihoods (spread-squares 5 2));; This is more extendable, and
 ;; two samples are almost always inscope.  One sample might not be.
 
+;;Should shuffle the range here every time we load this namespace.
 (def src-sets (map (fn [src] #{(str src)}) (range (count
                                                    likelihoods))))
 (def src-gens (map s/gen src-sets))
