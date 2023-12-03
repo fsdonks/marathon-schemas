@@ -1,4 +1,4 @@
-(defproject marathon-schemas "4.1.8-SNAPSHOT"
+(defproject marathon-schemas "4.1.10-SNAPSHOT"
   :description "data schemas, specifications, and validation tools for marathon"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
