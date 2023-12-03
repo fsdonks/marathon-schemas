@@ -129,12 +129,6 @@
     :text   string?
     })
 
-;;If we want to add on additional specs to the schemas, we can define
-;;specs qualified in this namespace and get-spec will combine the
-;;specs together with s/and.
-(s/def :marathon.spec/Tags (s/keys :opt-un
-                                   [:marathon.spec/preprocess]))
-
 (defn kw->vec [k]
   [(name k) (namespace k)])
 
@@ -261,7 +255,11 @@
     (validate-records nm t)))
 
 ;;I think we should really define a MARATHON project spec as a map of
-;;the project tables instead of doing this manually with this function.
+;;the project tables instead of doing this manually with this
+;;function.
+;;spec error may be hidden here, but shows when calling
+;;validate-records directly. Should return nil if there were no
+;;issues.
 (defn validate-project
   "Beta implementation of project-level
    validation.  Soon to be introduced into
@@ -304,3 +302,27 @@
 (def more-likely (gen/frequency
                   (map vector likelihoods src-gens)))
 
+;;Starting 15 Nov 2023, we'll transition to defining more restrictive
+;;specs on the values as oppsed to the datatype requirements in the
+;;schemas.  We're planning to rewrite all schemas as specs.  Still
+;;might want to keep the schema->spec stuff for other libraries.
+
+;;schema is only restricted to any string or nil.
+;;Previous to 15 Nov 2023, the schema only required nil or any string and any
+;;category that didn't exist, got mapped to :default.  I think to
+;;prevent typos, it's better to force the user to keep the field nil
+;;or :default.  Most legacy data shows Rotational, so we'll allow that
+;;to get mapped to :default, too.
+(s/def :marathon.spec/default-categories
+  #{"NonBOG" "Forward" "RC_Cannibalization"
+    "NonBOG-RC-Only" "nonbog_with_cannibals"
+    "Modernization" "SRM" "Modernization-AC" "Fenced" "Rotational"
+    :default})
+(s/def :DemandRecords/Category (s/or :allow-nil nil?
+                                     :categories
+                                     :marathon.spec/default-categories))
+
+(s/def :marathon.spec/Tags (s/or :allow-nil nil?
+                                 :preprocess
+                                 (s/keys :opt-un
+                                   [:marathon.spec/preprocess])))
