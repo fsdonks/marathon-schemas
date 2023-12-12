@@ -313,15 +313,22 @@
 ;;prevent typos, it's better to force the user to keep the field nil
 ;;or :default.  Most legacy data shows Rotational, so we'll allow that
 ;;to get mapped to :default, too.
-(s/def :marathon.spec/default-categories
-  #{"NonBOG" "Forward" "RC_Cannibalization"
+(def default-categories #{"NonBOG" "Forward" "RC_Cannibalization"
     "NonBOG-RC-Only" "nonbog_with_cannibals"
     "Modernization" "SRM" "Modernization-AC" "Fenced" "Rotational"
-    :default})
+                          :default})
+
+(s/def :marathon.spec/default-categories
+  default-categories)
+
+;;Replaces the schema to spec Category which exists under :DemandRecords/Category.
 (s/def :DemandRecords/Category (s/or :allow-nil nil?
                                      :categories
                                      :marathon.spec/default-categories))
 
+;;Doesn't replace the schema to spec Tags which exists under
+;;:DemandRecords/Tags since this still needs to be narrowed down with
+;;at least restrictions on the integers for size of :preprocess bins.
 (s/def :marathon.spec/Tags (s/or :allow-nil nil?
                                  :preprocess
                                  (s/keys :opt-un
